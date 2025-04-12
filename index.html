@@ -3,61 +3,47 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FunFart Grab - Mint NFT</title>
-
-  <!-- Optional: Favicon -->
+  <title>FunFart Grab - Play & Win NFT</title>
   <link rel="icon" href="https://yourgameurl.com/icon.png" />
-
-  <!-- Optional: Basic styling -->
   <style>
     body {
-      font-family: 'Arial', sans-serif;
-      text-align: center;
+      font-family: Arial, sans-serif;
       background: #fafafa;
       margin: 0;
-      padding: 2rem;
+      padding: 0;
+      text-align: center;
     }
-
-    h1 {
-      color: #6b21a8;
+    #game-container {
+      width: 800px;
+      height: 600px;
+      margin: 0 auto;
+      background-color: #000;
     }
-
-    button {
-      padding: 1rem 2rem;
-      font-size: 1.2rem;
-      background-color: #9333ea;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-
-    button:hover {
-      background-color: #7e22ce;
+    /* Optional loading text */
+    #loading {
+      color: #9333ea;
+      margin-top: 2rem;
     }
   </style>
 </head>
 <body>
+  <h1>🎮 FunFart Grab</h1>
+  <p>Play the game and win an NFT prize!</p>
+  <div id="game-container"></div>
+  <div id="loading">Loading game...</div>
 
-  <h1>🎮 Welcome to FunFart Grab</h1>
-  <p>Mint your prize NFT after winning the game!</p>
-
-  <button onclick="mintPrizeNFT()">Connect Wallet & Mint NFT</button>
-
-  <!-- Load and run app logic -->
+  <!-- Game + Wallet Integration -->
   <script type="module">
     import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
     import { EthereumClient, w3mProvider } from "https://unpkg.com/@web3modal/ethereum/dist/index.js";
     import { Web3Modal } from "https://unpkg.com/@web3modal/html/dist/index.js";
 
+    // --- WalletConnect and Contract Setup ---
     const projectId = "15da3c431a74b29edb63198a503d45b5";
-
     const chains = [
       { id: 1, name: "Ethereum", rpcUrls: ["https://rpc.ankr.com/eth"] },
       { id: 137, name: "Polygon", rpcUrls: ["https://polygon-rpc.com"] }
     ];
-
     const metadata = {
       name: "FunFart Grab",
       description: "Mint NFTs after winning the game!",
@@ -66,7 +52,10 @@
     };
 
     const ethereumClient = new EthereumClient(w3mProvider({ projectId, chains }), chains);
-    const web3Modal = new Web3Modal({ projectId, themeMode: "light", themeColor: "purple", metadata }, ethereumClient);
+    const web3Modal = new Web3Modal(
+      { projectId, themeMode: "light", themeColor: "purple", metadata },
+      ethereumClient
+    );
 
     const CONTRACT_ADDRESS = "0x7eFC729a41FC7073dE028712b0FB3950F735f9ca";
     const CONTRACT_ABI = ["function mintPrize() public"];
@@ -76,27 +65,26 @@
         await web3Modal.openModal();
 
         const provider = await new Promise((resolve, reject) => {
-          const check = setInterval(() => {
+          const checkInterval = setInterval(() => {
             const p = ethereumClient.getProvider();
             if (p) {
-              clearInterval(check);
+              clearInterval(checkInterval);
               resolve(p);
             }
           }, 300);
           setTimeout(() => {
-            clearInterval(check);
-            reject(new Error("🕒 Wallet connection timed out."));
+            clearInterval(checkInterval);
+            reject(new Error("Wallet connection timed out."));
           }, 15000);
         });
 
         const web3Provider = new ethers.providers.Web3Provider(provider);
         const signer = web3Provider.getSigner();
         const address = await signer.getAddress();
-
         console.log("🔌 Wallet connected:", address);
         return { provider: web3Provider, signer, address };
       } catch (err) {
-        console.error("❌ Connection error:", err);
+        console.error("Connection failed:", err);
         alert("❌ Failed to connect wallet.");
         return null;
       }
@@ -112,13 +100,73 @@
         await tx.wait();
         alert("🎉 NFT Minted Successfully!");
       } catch (err) {
-        console.error("❌ Minting failed:", err);
+        console.error("Minting error:", err);
         alert("❌ Minting failed: " + (err.reason || err.message || err));
       }
     }
 
-    // Expose to global for button usage
+    // Expose the mint function globally (if needed elsewhere)
     window.mintPrizeNFT = mintPrizeNFT;
+
+    // --- Connect minting to the game victory event ---
+    // Listen for a custom event "gameVictory" dispatched by the game logic.
+    document.addEventListener("gameVictory", () => {
+      console.log("Victory event received! Initiating mint...");
+      mintPrizeNFT();
+    });
+
+    // --- Initialize the Game ---
+    // Import and create your Phaser game, loading it into #game-container.
+    // This is an example using Phaser. Replace with your game initialization code as needed.
+    import Phaser from "https://cdn.jsdelivr.net/npm/phaser@3.85.2/dist/phaser.js";
+
+    class GameScene extends Phaser.Scene {
+      constructor() {
+        super("GameScene");
+      }
+
+      preload() {
+        // Preload assets here
+        this.load.image("background", "https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafybeic345u2ts5tz3u3xcguldwnlg3ye5wzl6o6vew7gnf6mh3du3xpnu");
+        this.load.image("claw", "https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreicph5dqmvlsxvn7kbpd3ipf3qaul7sunbm3zhbx5tvf3ofgecljsq");
+        this.load.image("prize", "https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreibyehv3juhhr7jgfblaziguedekj7skpqzndbbvd7xnj7isuxhela");
+        this.load.image("victoryBg", "https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafybeie5fzzrljnlnejrhmrqaog3z4edm5hmsncuk4kayj5zyh7edfso5q");
+      }
+
+      create() {
+        this.add.image(400, 300, "background");
+        // (Add claw, prize, and game mechanics here)
+        // For demonstration purposes, we'll simulate a victory after 5 seconds:
+        this.time.delayedCall(5000, () => {
+          this.showVictoryScreen();
+        });
+      }
+
+      showVictoryScreen() {
+        // Display victory UI
+        this.add.image(400, 300, "victoryBg");
+        this.add.text(400, 150, "You Win!", { fontSize: "64px", color: "#fff" }).setOrigin(0.5);
+
+        // Dispatch the victory event so that mintPrizeNFT() is automatically called
+        document.dispatchEvent(new Event("gameVictory"));
+      }
+    }
+
+    const config = {
+      type: Phaser.AUTO,
+      width: 800,
+      height: 600,
+      parent: "game-container",
+      scene: [GameScene]
+    };
+
+    // Remove the loading text once the game starts
+    window.onload = () => {
+      const loadingEl = document.getElementById("loading");
+      if (loadingEl) loadingEl.style.display = "none";
+    };
+
+    const game = new Phaser.Game(config);
   </script>
 </body>
 </html>
