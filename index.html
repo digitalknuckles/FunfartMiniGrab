@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>FunFart Grab - Play & Win NFT</title>
-  <link rel="icon" href="https://yourgameurl.com/icon.png" />
+  <link rel="icon" href="https://yourgameurl.com/icon.png"/>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -31,128 +31,141 @@
   <div id="game-container"></div>
   <div id="loading">Loading game...</div>
 
-  <script type="module">
-    import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
-    import { EthereumClient, w3mProvider } from "https://unpkg.com/@web3modal/ethereum/dist/index.js";
-    import { Web3Modal } from "https://unpkg.com/@web3modal/html/dist/index.js";
+  <!-- UMD Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script src="https://unpkg.com/@web3modal/ethereum/dist/umd/index.js"></script>
+  <script src="https://unpkg.com/@web3modal/html/dist/umd/index.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.85.2/dist/phaser.js"></script>
 
-    const projectId = "15da3c431a74b29edb63198a503d45b5";
-    const chains = [
-      { id: 1, name: "Ethereum", rpcUrls: ["https://rpc.ankr.com/eth"] },
-      { id: 137, name: "Polygon", rpcUrls: ["https://polygon-rpc.com"] }
-    ];
-    const metadata = {
-      name: "FunFart Grab",
-      description: "Mint NFTs after winning the game!",
-      url: "https://yourgameurl.com",
-      icons: ["https://yourgameurl.com/icon.png"]
-    };
+  <script>
+    (function () {
+      const projectId = "15da3c431a74b29edb63198a503d45b5";
 
-    const ethereumClient = new EthereumClient(w3mProvider({ projectId, chains }), chains);
-    const web3Modal = new Web3Modal({ projectId, themeMode: "light", themeColor: "purple", metadata }, ethereumClient);
+      const chains = [
+        { id: 1, name: "Ethereum", rpcUrls: ["https://rpc.ankr.com/eth"] },
+        { id: 137, name: "Polygon", rpcUrls: ["https://polygon-rpc.com"] }
+      ];
 
-    const CONTRACT_ADDRESS = "0x7eFC729a41FC7073dE028712b0FB3950F735f9ca";
-    const CONTRACT_ABI = ["function mintPrize() public"];
+      const metadata = {
+        name: "FunFart Grab",
+        description: "Mint NFTs after winning the game!",
+        url: "https://yourgameurl.com",
+        icons: ["https://yourgameurl.com/icon.png"]
+      };
 
-    async function connectWallet() {
-      try {
-        await web3Modal.openModal();
-        const provider = await new Promise((resolve, reject) => {
-          const checkInterval = setInterval(() => {
-            const p = ethereumClient.getProvider();
-            if (p) {
+      const ethereumClient = new window.Web3ModalEthereum.EthereumClient(
+        window.Web3ModalEthereum.w3mProvider({ projectId, chains }),
+        chains
+      );
+
+      const web3Modal = new window.Web3ModalHtml.Web3Modal({
+        projectId,
+        themeMode: "light",
+        themeColor: "purple",
+        metadata
+      }, ethereumClient);
+
+      const CONTRACT_ADDRESS = "0x7eFC729a41FC7073dE028712b0FB3950F735f9ca";
+      const CONTRACT_ABI = ["function mintPrize() public"];
+
+      async function connectWallet() {
+        try {
+          await web3Modal.openModal();
+          const provider = await new Promise((resolve, reject) => {
+            const checkInterval = setInterval(() => {
+              const p = ethereumClient.getProvider();
+              if (p) {
+                clearInterval(checkInterval);
+                resolve(p);
+              }
+            }, 300);
+            setTimeout(() => {
               clearInterval(checkInterval);
-              resolve(p);
-            }
-          }, 300);
-          setTimeout(() => {
-            clearInterval(checkInterval);
-            reject(new Error("Wallet connection timed out."));
-          }, 15000);
-        });
+              reject(new Error("Wallet connection timed out."));
+            }, 15000);
+          });
 
-        const web3Provider = new ethers.providers.Web3Provider(provider);
-        const signer = web3Provider.getSigner();
-        const address = await signer.getAddress();
-        console.log("🔌 Wallet connected:", address);
-        return { provider: web3Provider, signer, address };
-      } catch (err) {
-        console.error("Connection failed:", err);
-        alert("❌ Failed to connect wallet.");
-        return null;
-      }
-    }
-
-    async function mintPrizeNFT() {
-      const wallet = await connectWallet();
-      if (!wallet) return;
-      try {
-        const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, wallet.signer);
-        const tx = await contract.mintPrize();
-        await tx.wait();
-        alert("🎉 NFT Minted Successfully!");
-      } catch (err) {
-        console.error("Minting error:", err);
-        alert("❌ Minting failed: " + (err.reason || err.message || err));
-      }
-    }
-
-    window.mintPrizeNFT = mintPrizeNFT;
-
-    document.addEventListener("gameVictory", () => {
-      console.log("Victory event received! Initiating mint...");
-      mintPrizeNFT();
-    });
-
-    import Phaser from "https://cdn.jsdelivr.net/npm/phaser@3.85.2/dist/phaser.js";
-
-    class GameScene extends Phaser.Scene {
-      constructor() {
-        super("GameScene");
+          const web3Provider = new ethers.providers.Web3Provider(provider);
+          const signer = web3Provider.getSigner();
+          const address = await signer.getAddress();
+          console.log("🔌 Wallet connected:", address);
+          return { provider: web3Provider, signer, address };
+        } catch (err) {
+          console.error("Connection failed:", err);
+          alert("❌ Failed to connect wallet.");
+          return null;
+        }
       }
 
-      preload() {
-        this.load.image('background', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafybeic345u2ts5tz3u3xcguldwnlg3ye5wzl6o6vew7gnf6mh3du3xpnu');
-        this.load.image('claw', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreicph5dqmvlsxvn7kbpd3ipf3qaul7sunbm3zhbx5tvf3ofgecljsq');
-        this.load.image('prize', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreibyehv3juhhr7jgfblaziguedekj7skpqzndbbvd7xnj7isuxhela');
-        this.load.image('victoryBg', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafybeie5fzzrljnlnejrhmrqaog3z4edm5hmsncuk4kayj5zyh7edfso5q');
-        this.load.image('overlay_idle', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreie32rhyvbibeer5minlpijbri5puqq36bafszwyjnhc4ozakew3oy');
-        this.load.image('overlay_left', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreig6zkwf6swgewwmwdhuiaualqymbfpbsdc4v3j3m47syg26x3uclq');
-        this.load.image('overlay_right', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreichlj2x2l4ejoyxale7kbfmiszesglm2aftsbdnrchjy4br5q3n2e');
-        this.load.image('startMenu', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreicexx7almk7jkzgd7up4uibqh2n7v6gkmeimbgoslbclc3dsndhhy');
+      async function mintPrizeNFT() {
+        const wallet = await connectWallet();
+        if (!wallet) return;
+        try {
+          const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, wallet.signer);
+          const tx = await contract.mintPrize();
+          await tx.wait();
+          alert("🎉 NFT Minted Successfully!");
+        } catch (err) {
+          console.error("Minting error:", err);
+          alert("❌ Minting failed: " + (err.reason || err.message || err));
+        }
       }
 
-      create() {
-        this.add.image(400, 300, 'background');
-        // Add game logic, claw, prize etc.
+      window.mintPrizeNFT = mintPrizeNFT;
 
-        // For demo: auto trigger victory after 5 seconds
-        this.time.delayedCall(5000, () => {
-          this.showVictoryScreen();
-        });
+      document.addEventListener("gameVictory", () => {
+        console.log("Victory event received! Initiating mint...");
+        mintPrizeNFT();
+      });
+
+      // Phaser Game
+      class GameScene extends Phaser.Scene {
+        constructor() {
+          super("GameScene");
+        }
+
+        preload() {
+          this.load.image('background', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafybeic345u2ts5tz3u3xcguldwnlg3ye5wzl6o6vew7gnf6mh3du3xpnu');
+          this.load.image('claw', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreicph5dqmvlsxvn7kbpd3ipf3qaul7sunbm3zhbx5tvf3ofgecljsq');
+          this.load.image('prize', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreibyehv3juhhr7jgfblaziguedekj7skpqzndbbvd7xnj7isuxhela');
+          this.load.image('victoryBg', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafybeie5fzzrljnlnejrhmrqaog3z4edm5hmsncuk4kayj5zyh7edfso5q');
+          this.load.image('overlay_idle', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreie32rhyvbibeer5minlpijbri5puqq36bafszwyjnhc4ozakew3oy');
+          this.load.image('overlay_left', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreig6zkwf6swgewwmwdhuiaualqymbfpbsdc4v3j3m47syg26x3uclq');
+          this.load.image('overlay_right', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreichlj2x2l4ejoyxale7kbfmiszesglm2aftsbdnrchjy4br5q3n2e');
+          this.load.image('startMenu', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreicexx7almk7jkzgd7up4uibqh2n7v6gkmeimbgoslbclc3dsndhhy');
+        }
+
+        create() {
+          this.add.image(400, 300, 'background');
+          // Add game logic, claw, prize etc.
+
+          // For demo: auto trigger victory after 5 seconds
+          this.time.delayedCall(5000, () => {
+            this.showVictoryScreen();
+          });
+        }
+
+        showVictoryScreen() {
+          this.add.image(400, 300, 'victoryBg');
+          this.add.text(400, 150, 'You Win!', { fontSize: '64px', color: '#fff' }).setOrigin(0.5);
+          document.dispatchEvent(new Event("gameVictory"));
+        }
       }
 
-      showVictoryScreen() {
-        this.add.image(400, 300, 'victoryBg');
-        this.add.text(400, 150, 'You Win!', { fontSize: '64px', color: '#fff' }).setOrigin(0.5);
-        document.dispatchEvent(new Event("gameVictory"));
-      }
-    }
+      const config = {
+        type: Phaser.AUTO,
+        width: 800,
+        height: 600,
+        parent: "game-container",
+        scene: [GameScene]
+      };
 
-    const config = {
-      type: Phaser.AUTO,
-      width: 800,
-      height: 600,
-      parent: "game-container",
-      scene: [GameScene]
-    };
-
-    window.onload = () => {
-      const loadingEl = document.getElementById("loading");
-      if (loadingEl) loadingEl.style.display = "none";
-      const game = new Phaser.Game(config); 
-    };
-
+      window.onload = () => {
+        const loadingEl = document.getElementById("loading");
+        if (loadingEl) loadingEl.style.display = "none";
+        new Phaser.Game(config);
+      };
+    })();
   </script>
 </body>
 </html>
