@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FunFart Grab - Mint NFT</title>
+
+  <!-- Optional: Favicon -->
+  <link rel="icon" href="https://yourgameurl.com/icon.png" />
+
+  <!-- Optional: Basic styling -->
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      text-align: center;
+      background: #fafafa;
+      margin: 0;
+      padding: 2rem;
+    }
+
+    h1 {
+      color: #6b21a8;
+    }
+
+    button {
+      padding: 1rem 2rem;
+      font-size: 1.2rem;
+      background-color: #9333ea;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #7e22ce;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🎮 Welcome to FunFart Grab</h1>
+  <p>Mint your prize NFT after winning the game!</p>
+
+  <button onclick="mintPrizeNFT()">Connect Wallet & Mint NFT</button>
+
+  <!-- Load and run app logic -->
+  <script type="module">
+    import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
+    import { EthereumClient, w3mProvider } from "https://unpkg.com/@web3modal/ethereum/dist/index.js";
+    import { Web3Modal } from "https://unpkg.com/@web3modal/html/dist/index.js";
+
+    const projectId = "15da3c431a74b29edb63198a503d45b5";
+
+    const chains = [
+      { id: 1, name: "Ethereum", rpcUrls: ["https://rpc.ankr.com/eth"] },
+      { id: 137, name: "Polygon", rpcUrls: ["https://polygon-rpc.com"] }
+    ];
+
+    const metadata = {
+      name: "FunFart Grab",
+      description: "Mint NFTs after winning the game!",
+      url: "https://yourgameurl.com",
+      icons: ["https://yourgameurl.com/icon.png"]
+    };
+
+    const ethereumClient = new EthereumClient(w3mProvider({ projectId, chains }), chains);
+    const web3Modal = new Web3Modal({ projectId, themeMode: "light", themeColor: "purple", metadata }, ethereumClient);
+
+    const CONTRACT_ADDRESS = "0x7eFC729a41FC7073dE028712b0FB3950F735f9ca";
+    const CONTRACT_ABI = ["function mintPrize() public"];
+
+    async function connectWallet() {
+      try {
+        await web3Modal.openModal();
+
+        const provider = await new Promise((resolve, reject) => {
+          const check = setInterval(() => {
+            const p = ethereumClient.getProvider();
+            if (p) {
+              clearInterval(check);
+              resolve(p);
+            }
+          }, 300);
+          setTimeout(() => {
+            clearInterval(check);
+            reject(new Error("🕒 Wallet connection timed out."));
+          }, 15000);
+        });
+
+        const web3Provider = new ethers.providers.Web3Provider(provider);
+        const signer = web3Provider.getSigner();
+        const address = await signer.getAddress();
+
+        console.log("🔌 Wallet connected:", address);
+        return { provider: web3Provider, signer, address };
+      } catch (err) {
+        console.error("❌ Connection error:", err);
+        alert("❌ Failed to connect wallet.");
+        return null;
+      }
+    }
+
+    async function mintPrizeNFT() {
+      const wallet = await connectWallet();
+      if (!wallet) return;
+
+      try {
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, wallet.signer);
+        const tx = await contract.mintPrize();
+        await tx.wait();
+        alert("🎉 NFT Minted Successfully!");
+      } catch (err) {
+        console.error("❌ Minting failed:", err);
+        alert("❌ Minting failed: " + (err.reason || err.message || err));
+      }
+    }
+
+    // Expose to global for button usage
+    window.mintPrizeNFT = mintPrizeNFT;
+  </script>
+</body>
+</html>
