@@ -19,7 +19,6 @@
       margin: 0 auto;
       background-color: #000;
     }
-    /* Optional loading text */
     #loading {
       color: #9333ea;
       margin-top: 2rem;
@@ -32,13 +31,11 @@
   <div id="game-container"></div>
   <div id="loading">Loading game...</div>
 
-  <!-- Game + Wallet Integration -->
   <script type="module">
     import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
     import { EthereumClient, w3mProvider } from "https://unpkg.com/@web3modal/ethereum/dist/index.js";
     import { Web3Modal } from "https://unpkg.com/@web3modal/html/dist/index.js";
 
-    // --- WalletConnect and Contract Setup ---
     const projectId = "15da3c431a74b29edb63198a503d45b5";
     const chains = [
       { id: 1, name: "Ethereum", rpcUrls: ["https://rpc.ankr.com/eth"] },
@@ -52,10 +49,7 @@
     };
 
     const ethereumClient = new EthereumClient(w3mProvider({ projectId, chains }), chains);
-    const web3Modal = new Web3Modal(
-      { projectId, themeMode: "light", themeColor: "purple", metadata },
-      ethereumClient
-    );
+    const web3Modal = new Web3Modal({ projectId, themeMode: "light", themeColor: "purple", metadata }, ethereumClient);
 
     const CONTRACT_ADDRESS = "0x7eFC729a41FC7073dE028712b0FB3950F735f9ca";
     const CONTRACT_ABI = ["function mintPrize() public"];
@@ -63,7 +57,6 @@
     async function connectWallet() {
       try {
         await web3Modal.openModal();
-
         const provider = await new Promise((resolve, reject) => {
           const checkInterval = setInterval(() => {
             const p = ethereumClient.getProvider();
@@ -93,7 +86,6 @@
     async function mintPrizeNFT() {
       const wallet = await connectWallet();
       if (!wallet) return;
-
       try {
         const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, wallet.signer);
         const tx = await contract.mintPrize();
@@ -105,19 +97,13 @@
       }
     }
 
-    // Expose the mint function globally (if needed elsewhere)
     window.mintPrizeNFT = mintPrizeNFT;
 
-    // --- Connect minting to the game victory event ---
-    // Listen for a custom event "gameVictory" dispatched by the game logic.
     document.addEventListener("gameVictory", () => {
       console.log("Victory event received! Initiating mint...");
       mintPrizeNFT();
     });
 
-    // --- Initialize the Game ---
-    // Import and create your Phaser game, loading it into #game-container.
-    // This is an example using Phaser. Replace with your game initialization code as needed.
     import Phaser from "https://cdn.jsdelivr.net/npm/phaser@3.85.2/dist/phaser.js";
 
     class GameScene extends Phaser.Scene {
@@ -126,28 +112,29 @@
       }
 
       preload() {
-        // Preload assets here
-        this.load.image("background", "https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafybeic345u2ts5tz3u3xcguldwnlg3ye5wzl6o6vew7gnf6mh3du3xpnu");
-        this.load.image("claw", "https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreicph5dqmvlsxvn7kbpd3ipf3qaul7sunbm3zhbx5tvf3ofgecljsq");
-        this.load.image("prize", "https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreibyehv3juhhr7jgfblaziguedekj7skpqzndbbvd7xnj7isuxhela");
-        this.load.image("victoryBg", "https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafybeie5fzzrljnlnejrhmrqaog3z4edm5hmsncuk4kayj5zyh7edfso5q");
+        this.load.image('background', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafybeic345u2ts5tz3u3xcguldwnlg3ye5wzl6o6vew7gnf6mh3du3xpnu');
+        this.load.image('claw', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreicph5dqmvlsxvn7kbpd3ipf3qaul7sunbm3zhbx5tvf3ofgecljsq');
+        this.load.image('prize', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreibyehv3juhhr7jgfblaziguedekj7skpqzndbbvd7xnj7isuxhela');
+        this.load.image('victoryBg', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafybeie5fzzrljnlnejrhmrqaog3z4edm5hmsncuk4kayj5zyh7edfso5q');
+        this.load.image('overlay_idle', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreie32rhyvbibeer5minlpijbri5puqq36bafszwyjnhc4ozakew3oy');
+        this.load.image('overlay_left', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreig6zkwf6swgewwmwdhuiaualqymbfpbsdc4v3j3m47syg26x3uclq');
+        this.load.image('overlay_right', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreichlj2x2l4ejoyxale7kbfmiszesglm2aftsbdnrchjy4br5q3n2e');
+        this.load.image('startMenu', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreicexx7almk7jkzgd7up4uibqh2n7v6gkmeimbgoslbclc3dsndhhy');
       }
 
       create() {
-        this.add.image(400, 300, "background");
-        // (Add claw, prize, and game mechanics here)
-        // For demonstration purposes, we'll simulate a victory after 5 seconds:
+        this.add.image(400, 300, 'background');
+        // Add game logic, claw, prize etc.
+
+        // For demo: auto trigger victory after 5 seconds
         this.time.delayedCall(5000, () => {
           this.showVictoryScreen();
         });
       }
 
       showVictoryScreen() {
-        // Display victory UI
-        this.add.image(400, 300, "victoryBg");
-        this.add.text(400, 150, "You Win!", { fontSize: "64px", color: "#fff" }).setOrigin(0.5);
-
-        // Dispatch the victory event so that mintPrizeNFT() is automatically called
+        this.add.image(400, 300, 'victoryBg');
+        this.add.text(400, 150, 'You Win!', { fontSize: '64px', color: '#fff' }).setOrigin(0.5);
         document.dispatchEvent(new Event("gameVictory"));
       }
     }
@@ -160,7 +147,6 @@
       scene: [GameScene]
     };
 
-    // Remove the loading text once the game starts
     window.onload = () => {
       const loadingEl = document.getElementById("loading");
       if (loadingEl) loadingEl.style.display = "none";
