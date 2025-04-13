@@ -33,8 +33,8 @@
 
   <!-- UMD Libraries -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-  <script src="https://unpkg.com/@web3modal/ethereum/dist/umd/index.js"></script>
   <script src="https://unpkg.com/@web3modal/html/dist/umd/index.js"></script>
+  <script src="https://unpkg.com/@web3modal/ethereum/dist/umd/index.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.85.2/dist/phaser.js"></script>
 
   <script>
@@ -53,38 +53,34 @@
         icons: ["https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreic4z6jgfbw3nyaffniqzfjfhtcvejoqjqy2rthx5uucr4xycji3km"]
       };
 
-      const ethereumClient = new window.Web3ModalEthereum.EthereumClient(
-        window.Web3ModalEthereum.w3mProvider({ projectId, chains }),
-        chains
-      );
-
-      const web3Modal = new window.Web3ModalHtml.Web3Modal({
-        projectId,
+      const web3Modal = new Web3Modal.default({
+        cacheProvider: true, // cache provider
+        providerOptions: {
+          injected: {
+            display: {
+              name: "Injected",
+              description: "Connect with the injected provider"
+            },
+            package: null
+          },
+          walletconnect: {
+            package: window.WalletConnectProvider,
+            options: {
+              infuraId: projectId
+            }
+          }
+        },
         themeMode: "light",
         themeColor: "purple",
         metadata
-      }, ethereumClient);
+      });
 
       const CONTRACT_ADDRESS = "0x7eFC729a41FC7073dE028712b0FB3950F735f9ca";
       const CONTRACT_ABI = ["function mintPrize() public"];
 
       async function connectWallet() {
         try {
-          await web3Modal.openModal();
-          const provider = await new Promise((resolve, reject) => {
-            const checkInterval = setInterval(() => {
-              const p = ethereumClient.getProvider();
-              if (p) {
-                clearInterval(checkInterval);
-                resolve(p);
-              }
-            }, 300);
-            setTimeout(() => {
-              clearInterval(checkInterval);
-              reject(new Error("Wallet connection timed out."));
-            }, 15000);
-          });
-
+          const provider = await web3Modal.connect();
           const web3Provider = new ethers.providers.Web3Provider(provider);
           const signer = web3Provider.getSigner();
           const address = await signer.getAddress();
@@ -137,7 +133,6 @@
 
         create() {
           this.add.image(400, 300, 'background');
-
           // For demo: auto trigger victory after 5 seconds
           this.time.delayedCall(5000, () => {
             this.showVictoryScreen();
