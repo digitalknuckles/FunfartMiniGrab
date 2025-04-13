@@ -53,6 +53,7 @@
         icons: ["https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreic4z6jgfbw3nyaffniqzfjfhtcvejoqjqy2rthx5uucr4xycji3km"]
       };
 
+      // Initialize Web3Modal with proper configuration
       const web3Modal = new Web3Modal.default({
         cacheProvider: true, // cache provider
         providerOptions: {
@@ -78,6 +79,7 @@
       const CONTRACT_ADDRESS = "0x7eFC729a41FC7073dE028712b0FB3950F735f9ca";
       const CONTRACT_ABI = ["function mintPrize() public"];
 
+      // Connect wallet to Web3Modal
       async function connectWallet() {
         try {
           const provider = await web3Modal.connect();
@@ -93,6 +95,7 @@
         }
       }
 
+      // Mint NFT
       async function mintPrizeNFT() {
         const wallet = await connectWallet();
         if (!wallet) return;
@@ -109,6 +112,7 @@
 
       window.mintPrizeNFT = mintPrizeNFT;
 
+      // Trigger mint when game victory event is dispatched
       document.addEventListener("gameVictory", () => {
         console.log("🎯 Victory event received! Initiating mint...");
         mintPrizeNFT();
