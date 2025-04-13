@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>FunFart Grab - Play & Win NFT</title>
-  <link rel="icon" href="https://yourgameurl.com/icon.png"/>
+  <link rel="icon" href="https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreic4z6jgfbw3nyaffniqzfjfhtcvejoqjqy2rthx5uucr4xycji3km" type="image/png"/>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -49,8 +49,8 @@
       const metadata = {
         name: "FunFart Grab",
         description: "Mint NFTs after winning the game!",
-        url: "https://yourgameurl.com",
-        icons: ["https://yourgameurl.com/icon.png"]
+        url: "https://digitalknuckles.github.io/FunfartMiniGrab/",
+        icons: ["https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreic4z6jgfbw3nyaffniqzfjfhtcvejoqjqy2rthx5uucr4xycji3km"]
       };
 
       const ethereumClient = new window.Web3ModalEthereum.EthereumClient(
@@ -114,11 +114,11 @@
       window.mintPrizeNFT = mintPrizeNFT;
 
       document.addEventListener("gameVictory", () => {
-        console.log("Victory event received! Initiating mint...");
+        console.log("🎯 Victory event received! Initiating mint...");
         mintPrizeNFT();
       });
 
-      // Phaser Game
+      // Phaser Game Logic
       class GameScene extends Phaser.Scene {
         constructor() {
           super("GameScene");
@@ -137,7 +137,6 @@
 
         create() {
           this.add.image(400, 300, 'background');
-          // Add game logic, claw, prize etc.
 
           // For demo: auto trigger victory after 5 seconds
           this.time.delayedCall(5000, () => {
@@ -147,7 +146,10 @@
 
         showVictoryScreen() {
           this.add.image(400, 300, 'victoryBg');
-          this.add.text(400, 150, 'You Win!', { fontSize: '64px', color: '#fff' }).setOrigin(0.5);
+          this.add.text(400, 150, 'You Win!', {
+            fontSize: '64px',
+            color: '#ffffff'
+          }).setOrigin(0.5);
           document.dispatchEvent(new Event("gameVictory"));
         }
       }
