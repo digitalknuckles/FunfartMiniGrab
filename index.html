@@ -1,12 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FunFart Mini Grab</title>
+
+  <!-- Ethers + WalletConnect + Web3Modal -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <script src="https://unpkg.com/web3modal@1.9.0/dist/index.js"></script>
   <script src="https://unpkg.com/@walletconnect/web3-provider@1.7.8/dist/umd/index.min.js"></script>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>FunFart Grab</title>
+
+  <!-- Phaser -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.85.2/dist/phaser.js"></script>
+
   <style>
     body {
       margin: 0;
@@ -24,11 +30,10 @@
 </head>
 <body>
   <div id="game-container"></div>
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.85.2/dist/phaser.js"></script>
+
   <script>
     const CONTRACT_ADDRESS = "0x7eFC729a41FC7073dE028712b0FB3950F735f9ca";
     const CONTRACT_ABI = ["function mintPrize() public"];
-
     const projectId = "15da3c431a74b29edb63198a503d45b5";
 
     const web3Modal = new Web3Modal.default({
@@ -96,6 +101,8 @@
       }
 
       create() {
+        this.add.image(400, 300, 'background');
+
         this.startMenu = this.add.image(400, 300, 'startMenu').setInteractive();
         this.startMenu.on('pointerdown', () => {
           this.startMenu.setVisible(false);
@@ -118,13 +125,10 @@
         this.input.on('pointermove', pointer => {
           if (!this.dropInProgress) {
             this.claw.x = Phaser.Math.Clamp(pointer.x, 100, 700);
-            if (pointer.x < 400) {
-              this.overlay.setTexture('overlay_left');
-            } else if (pointer.x > 400) {
-              this.overlay.setTexture('overlay_right');
-            } else {
-              this.overlay.setTexture('overlay_idle');
-            }
+            this.overlay.setTexture(
+              pointer.x < 400 ? 'overlay_left' :
+              pointer.x > 400 ? 'overlay_right' : 'overlay_idle'
+            );
           }
         });
 
@@ -155,7 +159,7 @@
       }
 
       startGame() {
-        this.add.image(400, 300, 'background');
+        // Reset elements if needed
       }
 
       showVictoryScreen() {
