@@ -1,13 +1,13 @@
 const CONTRACT_ADDRESS = "0x7eFC729a41FC7073dE028712b0FB3950F735f9ca";
 const CONTRACT_ABI = ["function mintPrize() public"];
-const projectId = "15da3c431a74b29edb63198a503d45b5";
+const INFURA_PROJECT_ID = "15da3c431a74b29edb63198a503d45b5";
 
 const web3Modal = new window.Web3Modal.default({
   cacheProvider: true,
   providerOptions: {
     injected: {
       display: {
-        name: "Injected",
+        name: "MetaMask",
         description: "Connect with your browser wallet",
       },
       package: null,
@@ -15,7 +15,7 @@ const web3Modal = new window.Web3Modal.default({
     walletconnect: {
       package: window.WalletConnectProvider.default,
       options: {
-        infuraId: projectId,
+        infuraId: INFURA_PROJECT_ID,
       },
     },
   },
@@ -24,7 +24,7 @@ const web3Modal = new window.Web3Modal.default({
 async function connectWallet() {
   try {
     const provider = await web3Modal.connect();
-    const web3Provider = new window.ethers.providers.Web3Provider(provider);
+    const web3Provider = new ethers.providers.Web3Provider(provider);
     const signer = web3Provider.getSigner();
     return { web3Provider, signer };
   } catch (err) {
@@ -37,7 +37,7 @@ async function mintPrizeNFT() {
   const wallet = await connectWallet();
   if (!wallet) return;
   try {
-    const contract = new window.ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, wallet.signer);
+    const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, wallet.signer);
     const tx = await contract.mintPrize();
     await tx.wait();
     alert("🎉 NFT Minted Successfully!");
@@ -145,6 +145,10 @@ const config = {
   height: 600,
   backgroundColor: '#000',
   parent: 'game-container',
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+  },
   physics: {
     default: 'arcade',
     arcade: {
