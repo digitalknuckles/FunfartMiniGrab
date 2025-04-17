@@ -3,43 +3,49 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>FunFart Grab Game</title>
+  <title>FunFart Mini Grab</title>
 
-  <!-- Load Phaser -->
+  <!-- Phaser -->
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
 
-  <!-- Load Ethers.js -->
+  <!-- Ethers.js -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 
-  <!-- Load Web3Modal -->
+  <!-- Web3Modal -->
   <script src="https://unpkg.com/web3modal@1.9.12/dist/index.js"></script>
 
-  <!-- Load WalletConnect Provider -->
+  <!-- WalletConnect -->
   <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
 
-  <!-- Style -->
   <style>
-    body {
+    html, body {
       margin: 0;
       padding: 0;
       background: #000;
-      font-family: 'Arial', sans-serif;
-    }
-    #game-container {
-      width: 100vw;
-      height: 100vh;
       overflow: hidden;
+      width: 100%;
+      height: 100%;
     }
+
+    #game-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
     canvas {
       display: block;
-      margin: 0 auto;
+      max-width: 100%;
+      max-height: 100%;
     }
   </style>
 </head>
 <body>
   <div id="game-container"></div>
 
-  <!-- Your Game Script -->
+  <!-- Game logic -->
   <script src="game.js"></script>
 </body>
 </html>
