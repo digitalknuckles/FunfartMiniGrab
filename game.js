@@ -7,17 +7,12 @@ const web3Modal = new window.Web3Modal.default({
   cacheProvider: true,
   providerOptions: {
     injected: {
-      display: {
-        name: "MetaMask",
-        description: "Connect with your browser wallet",
-      },
+      display: { name: "MetaMask", description: "Connect with your browser wallet" },
       package: null,
     },
     walletconnect: {
       package: window.WalletConnectProvider.default,
-      options: {
-        infuraId: INFURA_PROJECT_ID,
-      },
+      options: { infuraId: INFURA_PROJECT_ID },
     },
   },
 });
@@ -55,10 +50,16 @@ document.addEventListener("gameVictory", () => {
 class GameScene extends Phaser.Scene {
   constructor() {
     super({ key: 'GameScene' });
+    this.resetGameState();
+  }
+
+  resetGameState() {
     this.dropInProgress = false;
     this.gameStarted = false;
     this.prizeGrabbed = false;
     this.prizeDropped = false;
+    this.activePrize = null;
+    this.sparkle = null;
   }
 
   preload() {
@@ -66,68 +67,58 @@ class GameScene extends Phaser.Scene {
     this.load.image('claw', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreicph5dqmvlsxvn7kbpd3ipf3qaul7sunbm3zhbx5tvf3ofgecljsq');
     this.load.image('prize', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreibyehv3juhhr7jgfblaziguedekj7skpqzndbbvd7xnj7isuxhela');
     this.load.image('victoryBg', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafybeie5fzzrljnlnejrhmrqaog3z4edm5hmsncuk4kayj5zyh7edfso5q');
-    this.load.image('overlay_idle', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreie32rhyvbibeer5minlpijbri5puqq36bafszwyjnhc4ozakew3oy');
-    this.load.image('overlay_left', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreig6zkwf6swgewwmwdhuiaualqymbfpbsdc4v3j3m47syg26x3uclq');
-    this.load.image('overlay_right', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreichlj2x2l4ejoyxale7kbfmiszesglm2aftsbdnrchjy4br5q3n2e');
+    this.load.image('sparkle', 'https://upload.wikimedia.org/wikipedia/commons/0/0c/Gold_Star_Animated.gif');
     this.load.image('startMenu', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreicexx7almk7jkzgd7up4uibqh2n7v6gkmeimbgoslbclc3dsndhhy');
   }
 
   create() {
-    // Start Menu
     this.startMenu = this.add.image(400, 300, 'startMenu').setInteractive();
     this.startMenu.on('pointerdown', () => {
       this.startMenu.setVisible(false);
       this.startGame();
     });
 
-    // Overlay (always visible, changes with movement)
-    this.overlay = this.add.image(400, 300, 'overlay_idle').setDepth(10).setVisible(false);
-
-    // Mouse movement
+    // Touch controls
     this.input.on('pointermove', pointer => {
       if (!this.gameStarted || this.dropInProgress || this.prizeDropped) return;
       this.claw.x = Phaser.Math.Clamp(pointer.x, 100, 700);
-      if (this.prizeGrabbed) this.prize.x = this.claw.x;
-      if (pointer.x < 375) {
-        this.overlay.setTexture('overlay_left');
-      } else if (pointer.x > 425) {
-        this.overlay.setTexture('overlay_right');
-      } else {
-        this.overlay.setTexture('overlay_idle');
-      }
+      if (this.prizeGrabbed && this.activePrize) this.activePrize.x = this.claw.x;
     });
 
-    // Drop claw
     this.input.on('pointerdown', () => {
       if (!this.gameStarted || this.dropInProgress) return;
 
-      // If prize is already grabbed and not dropped yet, release it
-      if (this.prizeGrabbed && !this.prizeDropped) {
+      if (this.prizeGrabbed && this.activePrize && !this.prizeDropped) {
         this.releasePrize();
         return;
       }
 
-      // Otherwise, drop claw to attempt grab
       this.dropInProgress = true;
+
       this.tweens.add({
         targets: this.claw,
-        y: this.prize.y,
+        y: this.deepestPrizeY - 40,
         duration: 600,
         onComplete: () => {
-          const distance = Phaser.Math.Distance.Between(this.claw.x, this.claw.y, this.prize.x, this.prize.y);
-          if (distance < 50) {
-            this.prizeGrabbed = true;
-            this.prize.body.allowGravity = false;
-            this.prize.setVelocity(0);
-            this.prize.y = this.claw.y + 40;
-          }
+          this.physics.overlap(this.claw, this.prizes, (claw, prize) => {
+            if (!this.prizeGrabbed) {
+              this.activePrize = prize;
+              this.prizeGrabbed = true;
+              prize.body.allowGravity = false;
+              prize.setVelocity(0);
+              prize.y = this.claw.y + 40;
+
+              this.showSparkle(prize.x, prize.y - 20);
+            }
+          });
+
           this.tweens.add({
             targets: this.claw,
             y: this.clawOriginalY,
             duration: 600,
             onUpdate: () => {
-              if (this.prizeGrabbed) {
-                this.prize.y = this.claw.y + 40;
+              if (this.prizeGrabbed && this.activePrize) {
+                this.activePrize.y = this.claw.y + 40;
               }
             },
             onComplete: () => {
@@ -147,28 +138,44 @@ class GameScene extends Phaser.Scene {
     this.claw.body.allowGravity = false;
     this.clawOriginalY = this.claw.y;
 
-    this.prize = this.physics.add.sprite(Phaser.Math.Between(150, 650), 500, 'prize');
-    this.prize.setBounce(0.3);
-    this.prize.setCollideWorldBounds(true);
-    this.prize.body.allowGravity = true;
+    this.prizes = this.physics.add.group();
+    this.deepestPrizeY = 0;
 
-    // Ground collision to trigger victory
-    this.physics.world.setBounds(0, 0, 800, 600);
-    this.physics.add.collider(this.prize, this.physics.world.bounds.bottom, () => {
-      if (this.prizeDropped) {
+    for (let i = 0; i < 4; i++) {
+      const x = Phaser.Math.Between(120, 680);
+      const y = Phaser.Math.Between(420, 500);
+      const prize = this.prizes.create(x, y, 'prize');
+      prize.setBounce(0.3);
+      prize.setCollideWorldBounds(true);
+      prize.body.allowGravity = true;
+      if (y > this.deepestPrizeY) this.deepestPrizeY = y;
+    }
+
+    this.prizeBox = this.add.rectangle(740, 590, 50, 10, 0x00ff00).setOrigin(0.5);
+    this.physics.add.existing(this.prizeBox, true);
+
+    this.physics.add.collider(this.prizes, this.prizeBox, (prize, box) => {
+      if (this.prizeDropped && prize === this.activePrize) {
         this.time.delayedCall(500, () => this.showVictoryScreen());
-        this.prizeDropped = false; // prevent multiple triggers
+        this.prizeDropped = false;
       }
     });
 
-    this.overlay.setVisible(true);
+    this.physics.add.collider(this.prizes, this.physics.world.bounds.bottom);
   }
 
   releasePrize() {
+    if (!this.activePrize) return;
     this.prizeDropped = true;
     this.prizeGrabbed = false;
-    this.prize.body.allowGravity = true;
-    this.prize.setVelocityY(200);
+    this.activePrize.body.allowGravity = true;
+    this.activePrize.setVelocityY(300);
+  }
+
+  showSparkle(x, y) {
+    if (this.sparkle) this.sparkle.destroy();
+    this.sparkle = this.add.image(x, y, 'sparkle').setScale(0.2);
+    this.time.delayedCall(1000, () => this.sparkle.destroy());
   }
 
   showVictoryScreen() {
@@ -178,6 +185,19 @@ class GameScene extends Phaser.Scene {
       fontSize: '48px',
       color: '#ffffff',
     }).setOrigin(0.5);
+
+    const retryBtn = this.add.text(400, 350, 'Retry', {
+      fontSize: '32px',
+      backgroundColor: '#000',
+      color: '#0f0',
+      padding: { x: 20, y: 10 },
+    }).setOrigin(0.5).setInteractive();
+
+    retryBtn.on('pointerdown', () => {
+      this.scene.restart();
+      this.resetGameState();
+    });
+
     document.dispatchEvent(new Event("gameVictory"));
   }
 }
