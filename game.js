@@ -1,9 +1,8 @@
-// 🧠 Web3 + Contract Setup
+// === Contract Setup ===
 const CONTRACT_ADDRESS = "0x7eFC729a41FC7073dE028712b0FB3950F735f9ca";
 const CONTRACT_ABI = ["function mintPrize() public"];
 const INFURA_PROJECT_ID = "15da3c431a74b29edb63198a503d45b5";
 
-// 🦊 Web3Modal Configuration
 const web3Modal = new window.Web3Modal.default({
   cacheProvider: true,
   providerOptions: {
@@ -23,7 +22,6 @@ const web3Modal = new window.Web3Modal.default({
   },
 });
 
-// 🔐 Wallet Connection + Mint Function
 async function connectWallet() {
   try {
     const provider = await web3Modal.connect();
@@ -49,15 +47,16 @@ async function mintPrizeNFT() {
   }
 }
 
-// 🔔 Listen for in-game win event
 document.addEventListener("gameVictory", () => {
   mintPrizeNFT();
 });
 
-// 🎮 Phaser Game Scene
+// === Phaser Game Scene ===
 class GameScene extends Phaser.Scene {
   constructor() {
     super({ key: 'GameScene' });
+    this.dropInProgress = false;
+    this.gameStarted = false;
   }
 
   preload() {
@@ -72,44 +71,37 @@ class GameScene extends Phaser.Scene {
   }
 
   create() {
-    // 🎬 Start Menu
+    // Start Menu
     this.startMenu = this.add.image(400, 300, 'startMenu').setInteractive();
     this.startMenu.on('pointerdown', () => {
       this.startMenu.setVisible(false);
       this.startGame();
     });
 
-    // Claw, prize, overlay
-    this.claw = this.physics.add.sprite(400, 100, 'claw').setImmovable(true);
-    this.clawOriginalY = this.claw.y;
-    this.prize = this.physics.add.sprite(Phaser.Math.Between(100, 700), 500, 'prize');
-    this.prize.setBounce(0.5);
-    this.prize.setCollideWorldBounds(true);
-    this.overlay = this.add.image(400, 300, 'overlay_idle').setOrigin(0.5).setDepth(10);
+    // Overlay (always visible, changes with movement)
+    this.overlay = this.add.image(400, 300, 'overlay_idle').setDepth(10).setVisible(false);
 
-    this.dropInProgress = false;
-
-    // 🕹 Claw Follow Mouse
+    // Mouse movement
     this.input.on('pointermove', pointer => {
-      if (!this.dropInProgress) {
-        this.claw.x = Phaser.Math.Clamp(pointer.x, 100, 700);
-        this.overlay.setTexture(
-          pointer.x < 350 ? 'overlay_left' :
-          pointer.x > 450 ? 'overlay_right' :
-          'overlay_idle'
-        );
+      if (!this.gameStarted || this.dropInProgress) return;
+      this.claw.x = Phaser.Math.Clamp(pointer.x, 100, 700);
+      if (pointer.x < 375) {
+        this.overlay.setTexture('overlay_left');
+      } else if (pointer.x > 425) {
+        this.overlay.setTexture('overlay_right');
+      } else {
+        this.overlay.setTexture('overlay_idle');
       }
     });
 
-    // 🧲 Drop Claw on Click
+    // Drop claw on click
     this.input.on('pointerdown', () => {
-      if (this.dropInProgress) return;
+      if (!this.gameStarted || this.dropInProgress) return;
       this.dropInProgress = true;
-
       this.tweens.add({
         targets: this.claw,
         y: this.prize.y,
-        duration: 800,
+        duration: 600,
         onComplete: () => {
           const distance = Phaser.Math.Distance.Between(this.claw.x, this.claw.y, this.prize.x, this.prize.y);
           if (distance < 50) {
@@ -119,8 +111,10 @@ class GameScene extends Phaser.Scene {
           this.tweens.add({
             targets: this.claw,
             y: this.clawOriginalY,
-            duration: 800,
-            onComplete: () => { this.dropInProgress = false; }
+            duration: 600,
+            onComplete: () => {
+              this.dropInProgress = false;
+            }
           });
         }
       });
@@ -128,25 +122,37 @@ class GameScene extends Phaser.Scene {
   }
 
   startGame() {
+    this.gameStarted = true;
     this.add.image(400, 300, 'background');
+
+    this.claw = this.physics.add.sprite(400, 100, 'claw').setImmovable(true);
+    this.clawOriginalY = this.claw.y;
+
+    this.prize = this.physics.add.sprite(Phaser.Math.Between(150, 650), 500, 'prize');
+    this.prize.setBounce(0.3);
+    this.prize.setCollideWorldBounds(true);
+
+    this.overlay.setVisible(true);
   }
 
   showVictoryScreen() {
+    this.gameStarted = false;
     this.add.image(400, 300, 'victoryBg');
     this.add.text(400, 150, '🎉 You Win!', {
       fontSize: '48px',
-      color: '#ffffff'
+      color: '#ffffff',
     }).setOrigin(0.5);
-    document.dispatchEvent(new Event("gameVictory")); // triggers wallet mint
+    document.dispatchEvent(new Event("gameVictory"));
   }
 }
 
-// 🎮 Game Config
+// === Phaser Game Config ===
 const config = {
   type: Phaser.AUTO,
   width: 800,
   height: 600,
   parent: 'game-container',
+  backgroundColor: '#000',
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
