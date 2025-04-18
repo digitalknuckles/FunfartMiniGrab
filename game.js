@@ -50,16 +50,11 @@ document.addEventListener("gameVictory", () => {
 class GameScene extends Phaser.Scene {
   constructor() {
     super({ key: 'GameScene' });
-    this.resetGameState();
-  }
-
-  resetGameState() {
     this.dropInProgress = false;
     this.gameStarted = false;
     this.prizeGrabbed = false;
     this.prizeDropped = false;
     this.activePrize = null;
-    this.sparkle = null;
   }
 
   preload() {
@@ -67,7 +62,9 @@ class GameScene extends Phaser.Scene {
     this.load.image('claw', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreicph5dqmvlsxvn7kbpd3ipf3qaul7sunbm3zhbx5tvf3ofgecljsq');
     this.load.image('prize', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreibyehv3juhhr7jgfblaziguedekj7skpqzndbbvd7xnj7isuxhela');
     this.load.image('victoryBg', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafybeie5fzzrljnlnejrhmrqaog3z4edm5hmsncuk4kayj5zyh7edfso5q');
-    this.load.image('sparkle', 'https://upload.wikimedia.org/wikipedia/commons/0/0c/Gold_Star_Animated.gif');
+    this.load.image('overlay_idle', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreie32rhyvbibeer5minlpijbri5puqq36bafszwyjnhc4ozakew3oy');
+    this.load.image('overlay_left', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreig6zkwf6swgewwmwdhuiaualqymbfpbsdc4v3j3m47syg26x3uclq');
+    this.load.image('overlay_right', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreichlj2x2l4ejoyxale7kbfmiszesglm2aftsbdnrchjy4br5q3n2e');
     this.load.image('startMenu', 'https://magenta-broad-orca-873.mypinata.cloud/ipfs/bafkreicexx7almk7jkzgd7up4uibqh2n7v6gkmeimbgoslbclc3dsndhhy');
   }
 
@@ -78,11 +75,16 @@ class GameScene extends Phaser.Scene {
       this.startGame();
     });
 
-    // Touch controls
+    this.overlay = this.add.image(400, 300, 'overlay_idle').setDepth(10).setVisible(false);
+
+    // Touch drag support
     this.input.on('pointermove', pointer => {
       if (!this.gameStarted || this.dropInProgress || this.prizeDropped) return;
       this.claw.x = Phaser.Math.Clamp(pointer.x, 100, 700);
-      if (this.prizeGrabbed && this.activePrize) this.activePrize.x = this.claw.x;
+      if (this.prizeGrabbed && this.activePrize) {
+        this.activePrize.x = this.claw.x;
+      }
+      this.overlay.setTexture(pointer.x < 375 ? 'overlay_left' : pointer.x > 425 ? 'overlay_right' : 'overlay_idle');
     });
 
     this.input.on('pointerdown', () => {
@@ -107,8 +109,6 @@ class GameScene extends Phaser.Scene {
               prize.body.allowGravity = false;
               prize.setVelocity(0);
               prize.y = this.claw.y + 40;
-
-              this.showSparkle(prize.x, prize.y - 20);
             }
           });
 
@@ -151,17 +151,14 @@ class GameScene extends Phaser.Scene {
       if (y > this.deepestPrizeY) this.deepestPrizeY = y;
     }
 
-    this.prizeBox = this.add.rectangle(740, 590, 50, 10, 0x00ff00).setOrigin(0.5);
-    this.physics.add.existing(this.prizeBox, true);
-
-    this.physics.add.collider(this.prizes, this.prizeBox, (prize, box) => {
+    this.physics.add.collider(this.prizes, this.physics.world.bounds.bottom, (prize) => {
       if (this.prizeDropped && prize === this.activePrize) {
         this.time.delayedCall(500, () => this.showVictoryScreen());
         this.prizeDropped = false;
       }
     });
 
-    this.physics.add.collider(this.prizes, this.physics.world.bounds.bottom);
+    this.overlay.setVisible(true);
   }
 
   releasePrize() {
@@ -172,12 +169,6 @@ class GameScene extends Phaser.Scene {
     this.activePrize.setVelocityY(300);
   }
 
-  showSparkle(x, y) {
-    if (this.sparkle) this.sparkle.destroy();
-    this.sparkle = this.add.image(x, y, 'sparkle').setScale(0.2);
-    this.time.delayedCall(1000, () => this.sparkle.destroy());
-  }
-
   showVictoryScreen() {
     this.gameStarted = false;
     this.add.image(400, 300, 'victoryBg');
@@ -185,19 +176,6 @@ class GameScene extends Phaser.Scene {
       fontSize: '48px',
       color: '#ffffff',
     }).setOrigin(0.5);
-
-    const retryBtn = this.add.text(400, 350, 'Retry', {
-      fontSize: '32px',
-      backgroundColor: '#000',
-      color: '#0f0',
-      padding: { x: 20, y: 10 },
-    }).setOrigin(0.5).setInteractive();
-
-    retryBtn.on('pointerdown', () => {
-      this.scene.restart();
-      this.resetGameState();
-    });
-
     document.dispatchEvent(new Event("gameVictory"));
   }
 }
