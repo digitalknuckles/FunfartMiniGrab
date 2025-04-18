@@ -1,7 +1,9 @@
+// 🧠 Web3 + Contract Setup
 const CONTRACT_ADDRESS = "0x7eFC729a41FC7073dE028712b0FB3950F735f9ca";
 const CONTRACT_ABI = ["function mintPrize() public"];
 const INFURA_PROJECT_ID = "15da3c431a74b29edb63198a503d45b5";
 
+// 🦊 Web3Modal Configuration
 const web3Modal = new window.Web3Modal.default({
   cacheProvider: true,
   providerOptions: {
@@ -21,6 +23,7 @@ const web3Modal = new window.Web3Modal.default({
   },
 });
 
+// 🔐 Wallet Connection + Mint Function
 async function connectWallet() {
   try {
     const provider = await web3Modal.connect();
@@ -46,10 +49,12 @@ async function mintPrizeNFT() {
   }
 }
 
+// 🔔 Listen for in-game win event
 document.addEventListener("gameVictory", () => {
   mintPrizeNFT();
 });
 
+// 🎮 Phaser Game Scene
 class GameScene extends Phaser.Scene {
   constructor() {
     super({ key: 'GameScene' });
@@ -67,41 +72,40 @@ class GameScene extends Phaser.Scene {
   }
 
   create() {
+    // 🎬 Start Menu
     this.startMenu = this.add.image(400, 300, 'startMenu').setInteractive();
     this.startMenu.on('pointerdown', () => {
       this.startMenu.setVisible(false);
       this.startGame();
     });
 
-    this.claw = this.physics.add.sprite(400, 100, 'claw');
-    this.claw.setImmovable(true);
-
+    // Claw, prize, overlay
+    this.claw = this.physics.add.sprite(400, 100, 'claw').setImmovable(true);
+    this.clawOriginalY = this.claw.y;
     this.prize = this.physics.add.sprite(Phaser.Math.Between(100, 700), 500, 'prize');
     this.prize.setBounce(0.5);
     this.prize.setCollideWorldBounds(true);
-
-    this.overlay = this.add.image(400, 300, 'overlay_idle').setOrigin(0.5);
-    this.overlay.setDepth(10);
+    this.overlay = this.add.image(400, 300, 'overlay_idle').setOrigin(0.5).setDepth(10);
 
     this.dropInProgress = false;
-    this.clawOriginalY = this.claw.y;
 
+    // 🕹 Claw Follow Mouse
     this.input.on('pointermove', pointer => {
       if (!this.dropInProgress) {
         this.claw.x = Phaser.Math.Clamp(pointer.x, 100, 700);
-        if (pointer.x < 400) {
-          this.overlay.setTexture('overlay_left');
-        } else if (pointer.x > 400) {
-          this.overlay.setTexture('overlay_right');
-        } else {
-          this.overlay.setTexture('overlay_idle');
-        }
+        this.overlay.setTexture(
+          pointer.x < 350 ? 'overlay_left' :
+          pointer.x > 450 ? 'overlay_right' :
+          'overlay_idle'
+        );
       }
     });
 
+    // 🧲 Drop Claw on Click
     this.input.on('pointerdown', () => {
       if (this.dropInProgress) return;
       this.dropInProgress = true;
+
       this.tweens.add({
         targets: this.claw,
         y: this.prize.y,
@@ -116,9 +120,7 @@ class GameScene extends Phaser.Scene {
             targets: this.claw,
             y: this.clawOriginalY,
             duration: 800,
-            onComplete: () => {
-              this.dropInProgress = false;
-            }
+            onComplete: () => { this.dropInProgress = false; }
           });
         }
       });
@@ -133,17 +135,17 @@ class GameScene extends Phaser.Scene {
     this.add.image(400, 300, 'victoryBg');
     this.add.text(400, 150, '🎉 You Win!', {
       fontSize: '48px',
-      color: '#ffffff',
+      color: '#ffffff'
     }).setOrigin(0.5);
-    document.dispatchEvent(new Event("gameVictory"));
+    document.dispatchEvent(new Event("gameVictory")); // triggers wallet mint
   }
 }
 
+// 🎮 Game Config
 const config = {
   type: Phaser.AUTO,
   width: 800,
   height: 600,
-  backgroundColor: '#000',
   parent: 'game-container',
   scale: {
     mode: Phaser.Scale.FIT,
