@@ -7,12 +7,17 @@ const web3Modal = new window.Web3Modal.default({
   cacheProvider: true,
   providerOptions: {
     injected: {
-      display: { name: "MetaMask", description: "Connect with your browser wallet" },
+      display: {
+        name: "MetaMask",
+        description: "Connect with your browser wallet",
+      },
       package: null,
     },
     walletconnect: {
       package: window.WalletConnectProvider.default,
-      options: { infuraId: INFURA_PROJECT_ID },
+      options: {
+        infuraId: INFURA_PROJECT_ID,
+      },
     },
   },
 });
@@ -54,7 +59,6 @@ class GameScene extends Phaser.Scene {
     this.gameStarted = false;
     this.prizeGrabbed = false;
     this.prizeDropped = false;
-    this.activePrize = null;
   }
 
   preload() {
@@ -77,20 +81,26 @@ class GameScene extends Phaser.Scene {
 
     this.overlay = this.add.image(400, 300, 'overlay_idle').setDepth(10).setVisible(false);
 
-    // Touch drag support
     this.input.on('pointermove', pointer => {
       if (!this.gameStarted || this.dropInProgress || this.prizeDropped) return;
       this.claw.x = Phaser.Math.Clamp(pointer.x, 100, 700);
-      if (this.prizeGrabbed && this.activePrize) {
-        this.activePrize.x = this.claw.x;
+      if (this.prizeGrabbed) {
+        this.prize.x = this.claw.x;
       }
-      this.overlay.setTexture(pointer.x < 375 ? 'overlay_left' : pointer.x > 425 ? 'overlay_right' : 'overlay_idle');
+
+      if (pointer.x < 375) {
+        this.overlay.setTexture('overlay_left');
+      } else if (pointer.x > 425) {
+        this.overlay.setTexture('overlay_right');
+      } else {
+        this.overlay.setTexture('overlay_idle');
+      }
     });
 
     this.input.on('pointerdown', () => {
       if (!this.gameStarted || this.dropInProgress) return;
 
-      if (this.prizeGrabbed && this.activePrize && !this.prizeDropped) {
+      if (this.prizeGrabbed && !this.prizeDropped) {
         this.releasePrize();
         return;
       }
@@ -99,26 +109,24 @@ class GameScene extends Phaser.Scene {
 
       this.tweens.add({
         targets: this.claw,
-        y: this.deepestPrizeY - 40,
+        y: this.prize.y - 40,
         duration: 600,
         onComplete: () => {
-          this.physics.overlap(this.claw, this.prizes, (claw, prize) => {
-            if (!this.prizeGrabbed) {
-              this.activePrize = prize;
-              this.prizeGrabbed = true;
-              prize.body.allowGravity = false;
-              prize.setVelocity(0);
-              prize.y = this.claw.y + 40;
-            }
-          });
+          const distance = Phaser.Math.Distance.Between(this.claw.x, this.claw.y, this.prize.x, this.prize.y);
+          if (distance < 60) {
+            this.prizeGrabbed = true;
+            this.prize.body.allowGravity = false;
+            this.prize.setVelocity(0);
+            this.prize.y = this.claw.y + 40;
+          }
 
           this.tweens.add({
             targets: this.claw,
             y: this.clawOriginalY,
             duration: 600,
             onUpdate: () => {
-              if (this.prizeGrabbed && this.activePrize) {
-                this.activePrize.y = this.claw.y + 40;
+              if (this.prizeGrabbed) {
+                this.prize.y = this.claw.y + 40;
               }
             },
             onComplete: () => {
@@ -138,21 +146,16 @@ class GameScene extends Phaser.Scene {
     this.claw.body.allowGravity = false;
     this.clawOriginalY = this.claw.y;
 
-    this.prizes = this.physics.add.group();
-    this.deepestPrizeY = 0;
+    this.prize = this.physics.add.sprite(Phaser.Math.Between(150, 650), 480, 'prize'); // Lower starting Y
+    this.prize.setBounce(0.3);
+    this.prize.setCollideWorldBounds(true);
+    this.prize.body.allowGravity = true;
 
-    for (let i = 0; i < 4; i++) {
-      const x = Phaser.Math.Between(120, 680);
-      const y = Phaser.Math.Between(420, 500);
-      const prize = this.prizes.create(x, y, 'prize');
-      prize.setBounce(0.3);
-      prize.setCollideWorldBounds(true);
-      prize.body.allowGravity = true;
-      if (y > this.deepestPrizeY) this.deepestPrizeY = y;
-    }
+    // Allow prize to collide with the floor (600 height total)
+    this.physics.world.setBounds(0, 0, 800, 600);
 
-    this.physics.add.collider(this.prizes, this.physics.world.bounds.bottom, (prize) => {
-      if (this.prizeDropped && prize === this.activePrize) {
+    this.physics.add.collider(this.prize, this.physics.world.bounds.bottom, () => {
+      if (this.prizeDropped) {
         this.time.delayedCall(500, () => this.showVictoryScreen());
         this.prizeDropped = false;
       }
@@ -162,11 +165,10 @@ class GameScene extends Phaser.Scene {
   }
 
   releasePrize() {
-    if (!this.activePrize) return;
     this.prizeDropped = true;
     this.prizeGrabbed = false;
-    this.activePrize.body.allowGravity = true;
-    this.activePrize.setVelocityY(300);
+    this.prize.body.allowGravity = true;
+    this.prize.setVelocityY(300);
   }
 
   showVictoryScreen() {
