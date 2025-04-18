@@ -82,7 +82,8 @@ class GameScene extends Phaser.Scene {
     this.overlay = this.add.image(400, 300, 'overlay_idle').setDepth(10).setVisible(false);
 
     this.input.on('pointermove', pointer => {
-      if (!this.gameStarted || this.dropInProgress || this.prizeDropped) return;
+      if (!this.gameStarted || this.dropInProgress) return;
+
       this.claw.x = Phaser.Math.Clamp(pointer.x, 100, 700);
       if (this.prizeGrabbed) {
         this.prize.x = this.claw.x;
@@ -105,36 +106,7 @@ class GameScene extends Phaser.Scene {
         return;
       }
 
-      this.dropInProgress = true;
-
-      this.tweens.add({
-        targets: this.claw,
-        y: this.prize.y - 40,
-        duration: 600,
-        onComplete: () => {
-          const distance = Phaser.Math.Distance.Between(this.claw.x, this.claw.y, this.prize.x, this.prize.y);
-          if (distance < 60) {
-            this.prizeGrabbed = true;
-            this.prize.body.allowGravity = false;
-            this.prize.setVelocity(0);
-            this.prize.y = this.claw.y + 40;
-          }
-
-          this.tweens.add({
-            targets: this.claw,
-            y: this.clawOriginalY,
-            duration: 600,
-            onUpdate: () => {
-              if (this.prizeGrabbed) {
-                this.prize.y = this.claw.y + 40;
-              }
-            },
-            onComplete: () => {
-              this.dropInProgress = false;
-            }
-          });
-        }
-      });
+      this.dropClaw();
     });
   }
 
@@ -146,12 +118,11 @@ class GameScene extends Phaser.Scene {
     this.claw.body.allowGravity = false;
     this.clawOriginalY = this.claw.y;
 
-    this.prize = this.physics.add.sprite(Phaser.Math.Between(150, 650), 480, 'prize'); // Lower starting Y
+    this.prize = this.physics.add.sprite(Phaser.Math.Between(150, 650), 480, 'prize');
     this.prize.setBounce(0.3);
     this.prize.setCollideWorldBounds(true);
     this.prize.body.allowGravity = true;
 
-    // Allow prize to collide with the floor (600 height total)
     this.physics.world.setBounds(0, 0, 800, 600);
 
     this.physics.add.collider(this.prize, this.physics.world.bounds.bottom, () => {
@@ -162,6 +133,40 @@ class GameScene extends Phaser.Scene {
     });
 
     this.overlay.setVisible(true);
+  }
+
+  dropClaw() {
+    this.dropInProgress = true;
+
+    this.tweens.add({
+      targets: this.claw,
+      y: this.prize.y - 40,
+      duration: 600,
+      onComplete: () => {
+        const distance = Phaser.Math.Distance.Between(this.claw.x, this.claw.y, this.prize.x, this.prize.y);
+        if (distance < 60) {
+          this.prizeGrabbed = true;
+          this.prize.body.allowGravity = false;
+          this.prize.setVelocity(0);
+          this.prize.y = this.claw.y + 40;
+        }
+
+        this.tweens.add({
+          targets: this.claw,
+          y: this.clawOriginalY,
+          duration: 600,
+          onUpdate: () => {
+            if (this.prizeGrabbed) {
+              this.prize.y = this.claw.y + 40;
+              this.prize.x = this.claw.x;
+            }
+          },
+          onComplete: () => {
+            this.dropInProgress = false;
+          }
+        });
+      }
+    });
   }
 
   releasePrize() {
