@@ -1,4 +1,4 @@
-// === Contract Setup ===
+// === Contract Setup === 
 const CONTRACT_ADDRESS = "0x7eFC729a41FC7073dE028712b0FB3950F735f9ca";
 const CONTRACT_ABI = ["function mintPrize() public"];
 const INFURA_PROJECT_ID = "15da3c431a74b29edb63198a503d45b5";
@@ -57,6 +57,8 @@ class GameScene extends Phaser.Scene {
     super({ key: 'GameScene' });
     this.dropInProgress = false;
     this.gameStarted = false;
+    this.prizeGrabbed = false;
+    this.prizeDropped = false;
   }
 
   preload() {
@@ -83,8 +85,9 @@ class GameScene extends Phaser.Scene {
 
     // Mouse movement
     this.input.on('pointermove', pointer => {
-      if (!this.gameStarted || this.dropInProgress) return;
+      if (!this.gameStarted || this.dropInProgress || this.prizeDropped) return;
       this.claw.x = Phaser.Math.Clamp(pointer.x, 100, 700);
+      if (this.prizeGrabbed) this.prize.x = this.claw.x;
       if (pointer.x < 375) {
         this.overlay.setTexture('overlay_left');
       } else if (pointer.x > 425) {
@@ -94,9 +97,17 @@ class GameScene extends Phaser.Scene {
       }
     });
 
-    // Drop claw on click
+    // Drop claw
     this.input.on('pointerdown', () => {
       if (!this.gameStarted || this.dropInProgress) return;
+
+      // If prize is already grabbed and not dropped yet, release it
+      if (this.prizeGrabbed && !this.prizeDropped) {
+        this.releasePrize();
+        return;
+      }
+
+      // Otherwise, drop claw to attempt grab
       this.dropInProgress = true;
       this.tweens.add({
         targets: this.claw,
@@ -105,13 +116,20 @@ class GameScene extends Phaser.Scene {
         onComplete: () => {
           const distance = Phaser.Math.Distance.Between(this.claw.x, this.claw.y, this.prize.x, this.prize.y);
           if (distance < 50) {
-            this.prize.setVelocityY(-200);
-            this.time.delayedCall(1000, () => this.showVictoryScreen());
+            this.prizeGrabbed = true;
+            this.prize.body.allowGravity = false;
+            this.prize.setVelocity(0);
+            this.prize.y = this.claw.y + 40;
           }
           this.tweens.add({
             targets: this.claw,
             y: this.clawOriginalY,
             duration: 600,
+            onUpdate: () => {
+              if (this.prizeGrabbed) {
+                this.prize.y = this.claw.y + 40;
+              }
+            },
             onComplete: () => {
               this.dropInProgress = false;
             }
@@ -126,13 +144,31 @@ class GameScene extends Phaser.Scene {
     this.add.image(400, 300, 'background');
 
     this.claw = this.physics.add.sprite(400, 100, 'claw').setImmovable(true);
+    this.claw.body.allowGravity = false;
     this.clawOriginalY = this.claw.y;
 
     this.prize = this.physics.add.sprite(Phaser.Math.Between(150, 650), 500, 'prize');
     this.prize.setBounce(0.3);
     this.prize.setCollideWorldBounds(true);
+    this.prize.body.allowGravity = true;
+
+    // Ground collision to trigger victory
+    this.physics.world.setBounds(0, 0, 800, 600);
+    this.physics.add.collider(this.prize, this.physics.world.bounds.bottom, () => {
+      if (this.prizeDropped) {
+        this.time.delayedCall(500, () => this.showVictoryScreen());
+        this.prizeDropped = false; // prevent multiple triggers
+      }
+    });
 
     this.overlay.setVisible(true);
+  }
+
+  releasePrize() {
+    this.prizeDropped = true;
+    this.prizeGrabbed = false;
+    this.prize.body.allowGravity = true;
+    this.prize.setVelocityY(200);
   }
 
   showVictoryScreen() {
@@ -160,7 +196,7 @@ const config = {
   physics: {
     default: 'arcade',
     arcade: {
-      gravity: { y: 0 },
+      gravity: { y: 300 },
       debug: false,
     },
   },
