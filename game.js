@@ -59,6 +59,7 @@ class GameScene extends Phaser.Scene {
     this.gameStarted = false;
     this.prizeGrabbed = false;
     this.prizeDropped = false;
+    this.prizeLanded = false;
   }
 
   preload() {
@@ -121,16 +122,9 @@ class GameScene extends Phaser.Scene {
     this.prize = this.physics.add.sprite(Phaser.Math.Between(150, 650), 480, 'prize');
     this.prize.setBounce(0.3);
     this.prize.setCollideWorldBounds(true);
-    this.prize.body.allowGravity = true;
-
-    this.physics.world.setBounds(0, 0, 800, 600);
-
-    this.physics.add.collider(this.prize, this.physics.world.bounds.bottom, () => {
-      if (this.prizeDropped) {
-        this.time.delayedCall(500, () => this.showVictoryScreen());
-        this.prizeDropped = false;
-      }
-    });
+    this.prize.setAllowGravity(true);
+    this.prize.setVelocity(0);
+    this.prizeLanded = false;
 
     this.overlay.setVisible(true);
   }
@@ -146,7 +140,7 @@ class GameScene extends Phaser.Scene {
         const distance = Phaser.Math.Distance.Between(this.claw.x, this.claw.y, this.prize.x, this.prize.y);
         if (distance < 60) {
           this.prizeGrabbed = true;
-          this.prize.body.allowGravity = false;
+          this.prize.setAllowGravity(false);
           this.prize.setVelocity(0);
           this.prize.y = this.claw.y + 40;
         }
@@ -172,8 +166,17 @@ class GameScene extends Phaser.Scene {
   releasePrize() {
     this.prizeDropped = true;
     this.prizeGrabbed = false;
-    this.prize.body.allowGravity = true;
+    this.prize.setAllowGravity(true);
     this.prize.setVelocityY(300);
+  }
+
+  update() {
+    if (this.prizeDropped && !this.prizeLanded) {
+      if (this.prize.body.blocked.down || this.prize.body.touching.down) {
+        this.prizeLanded = true;
+        this.time.delayedCall(500, () => this.showVictoryScreen());
+      }
+    }
   }
 
   showVictoryScreen() {
